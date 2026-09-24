@@ -35,18 +35,20 @@ type client struct {
 }
 
 func newClient(config clientConfig) (c *client, err error) {
-	torrentConfig := &torrent.ClientConfig{
-		// Gluetun's firewall already handles port forwarding and only
-		// allows explicitly opened ports through the tunnel, so we
-		// disable anacrolix's default UPnP port forwarding.
-		NoDefaultPortForwarding: true,
-		ListenHost:              func(_ string) string { return "" },
-		ListenPort:              int(config.Port),
-		DataDir:                 config.DownloadDirectory,
-	}
-
+	// Start from the full default configuration so that anacrolix's
+	// default callbacks (DHT starting nodes, metainfo sources merger,
+	// etc.) are populated, then override only the fields we control.
+	// Passing a bare *ClientConfig to NewClient skips those defaults and
+	// panics when DHT is enabled (nil DhtStartingNodes).
+	torrentConfig := torrent.NewDefaultClientConfig()
+	torrentConfig.DataDir = config.DownloadDirectory
+	torrentConfig.ListenPort = int(config.Port)
+	// Gluetun's firewall already handles port forwarding and only
+	// allows explicitly opened ports through the tunnel, so we disable
+	// anacrolix's default UPnP port forwarding.
+	torrentConfig.NoDefaultPortForwarding = true
 	// NoDHT is promoted from the embedded ClientDhtConfig, so it cannot
-	// be set in the struct literal at go 1.26 language level.
+	// be set in a struct literal at go 1.26 language level.
 	torrentConfig.NoDHT = !config.DHTEnabled
 
 	// anacrolix/torrent v1.61's ClientConfig.setRateLimiterBursts calls
