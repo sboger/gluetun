@@ -190,6 +190,7 @@ var validRoutes = map[string][]string{ //nolint:gochecknoglobals
 	"/v1/updater/status":        {http.MethodGet, http.MethodPut},
 	"/v1/publicip/ip":           {http.MethodGet},
 	"/v1/portforward":           {http.MethodGet, http.MethodPut},
+	"/v1/bittorrent/torrents":   {http.MethodGet, http.MethodPost, http.MethodDelete},
 }
 
 func countValidRoutes() (count int) {

@@ -199,6 +199,18 @@ ENV VPN_SERVICE_PROVIDER=pia \
     SHADOWSOCKS_PASSWORD= \
     SHADOWSOCKS_PASSWORD_SECRETFILE=/run/secrets/shadowsocks_password \
     SHADOWSOCKS_CIPHER=chacha20-ietf-poly1305 \
+    # Socks5
+    SOCKS5_ENABLED=off \
+    SOCKS5_LISTENING_ADDRESS=":1080" \
+    SOCKS5_USER= \
+    SOCKS5_PASSWORD= \
+    # BitTorrent
+    BITTORRENT_CLIENT=off \
+    BITTORRENT_PORT= \
+    BITTORRENT_DOWNLOAD_DIRECTORY=/downloads \
+    BITTORRENT_DHT=on \
+    BITTORRENT_UPLOAD_RATE= \
+    BITTORRENT_DOWNLOAD_RATE= \
     # Control server
     HTTP_CONTROL_SERVER_LOG=on \
     HTTP_CONTROL_SERVER_ADDRESS=":8000" \
@@ -239,5 +251,7 @@ RUN apk add --no-cache --update -l wget && \
     mv /usr/sbin/openvpn /usr/sbin/openvpn2.6 && \
     rm -rf /var/cache/apk/* /etc/openvpn/*.sh /usr/lib/openvpn/plugins/openvpn-plugin-down-root.so && \
     deluser openvpn && \
-    mkdir /gluetun
+    mkdir /gluetun && \
+    mkdir /downloads
 COPY --from=build /tmp/gobuild/entrypoint /gluetun-entrypoint
+VOLUME ["/downloads"]

@@ -10,7 +10,7 @@ import (
 )
 
 func newHandlerV1(w warner, buildInfo models.BuildInformation,
-	vpn, openvpn, dns, updater, publicip, portForward http.Handler,
+	vpn, openvpn, dns, updater, publicip, portForward, bittorrent http.Handler,
 ) http.Handler {
 	return &handlerV1{
 		warner:      w,
@@ -21,6 +21,7 @@ func newHandlerV1(w warner, buildInfo models.BuildInformation,
 		updater:     updater,
 		publicip:    publicip,
 		portForward: portForward,
+		bittorrent:  bittorrent,
 	}
 }
 
@@ -33,6 +34,7 @@ type handlerV1 struct {
 	updater     http.Handler
 	publicip    http.Handler
 	portForward http.Handler
+	bittorrent  http.Handler
 }
 
 func (h *handlerV1) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -51,6 +53,8 @@ func (h *handlerV1) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.publicip.ServeHTTP(w, r)
 	case strings.HasPrefix(r.RequestURI, "/portforward"):
 		h.portForward.ServeHTTP(w, r)
+	case strings.HasPrefix(r.RequestURI, "/bittorrent"):
+		h.bittorrent.ServeHTTP(w, r)
 	default:
 		errString := fmt.Sprintf("%s %s not found", r.Method, r.RequestURI)
 		http.Error(w, errString, http.StatusBadRequest)

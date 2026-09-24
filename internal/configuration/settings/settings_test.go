@@ -69,6 +69,8 @@ func Test_Settings_String(t *testing.T) {
 |   └── Enabled: no
 ├── HTTP proxy settings:
 |   └── Enabled: no
+├── BitTorrent client settings:
+|   └── Enabled: no
 ├── Control server settings:
 |   ├── Listening address: :8000
 |   ├── Logging: yes

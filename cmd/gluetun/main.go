@@ -18,6 +18,7 @@ import (
 	"github.com/qdm12/dns/v2/pkg/doh"
 	dnsprovider "github.com/qdm12/dns/v2/pkg/provider"
 	"github.com/qdm12/gluetun/internal/alpine"
+	"github.com/qdm12/gluetun/internal/bittorrent"
 	"github.com/qdm12/gluetun/internal/cli"
 	"github.com/qdm12/gluetun/internal/command"
 	"github.com/qdm12/gluetun/internal/configuration/settings"
@@ -468,12 +469,22 @@ func _main(ctx context.Context, buildInfo models.BuildInformation,
 	go shadowsocksLooper.Run(shadowsocksCtx, shadowsocksDone)
 	otherGroupHandler.Add(shadowsocksHandler)
 
+	bittorrentLogger := logger.New(log.SetComponent("bittorrent"))
+	bittorrentLoop := bittorrent.NewLoop(bittorrent.Settings{
+		Bittorrent:       allSettings.Bittorrent,
+		UseForwardedPort: *allSettings.VPN.Provider.PortForwarding.Enabled,
+	}, portForwardLooper, bittorrentLogger)
+	bittorrentHandler, bittorrentCtx, bittorrentDone := goshutdown.NewGoRoutineHandler(
+		"bittorrent", goroutine.OptionTimeout(defaultShutdownTimeout))
+	go bittorrentLoop.Run(bittorrentCtx, bittorrentDone)
+	otherGroupHandler.Add(bittorrentHandler)
+
 	httpServerHandler, httpServerCtx, httpServerDone := goshutdown.NewGoRoutineHandler(
 		"http server", goroutine.OptionTimeout(defaultShutdownTimeout))
 	httpServer, err := server.New(httpServerCtx, allSettings.ControlServer,
 		logger.New(log.SetComponent("http server")),
 		buildInfo, vpnLooper, portForwardLooper, dnsLooper, updaterLooper, publicIPLooper,
-		storage, ipv6Supported)
+		bittorrentLoop, storage, ipv6Supported)
 	if err != nil {
 		return fmt.Errorf("setting up control server: %w", err)
 	}
