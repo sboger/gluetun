@@ -49,15 +49,12 @@ func newClient(config clientConfig) (c *client, err error) {
 	// be set in the struct literal at go 1.26 language level.
 	torrentConfig.NoDHT = !config.DHTEnabled
 
+	// anacrolix/torrent v1.61's ClientConfig.setRateLimiterBursts calls
+	// UploadRateLimiter.Burst() unconditionally, so both limiters must
+	// never be nil. Use an unlimited limiter when no rate is configured.
 	const limiterBurst = 1 << 20 // 1 MiB, large enough for a full chunk
-	if config.UploadRate != nil && *config.UploadRate > 0 {
-		torrentConfig.UploadRateLimiter = rate.NewLimiter(
-			rate.Limit(*config.UploadRate), limiterBurst)
-	}
-	if config.DownloadRate != nil && *config.DownloadRate > 0 {
-		torrentConfig.DownloadRateLimiter = rate.NewLimiter(
-			rate.Limit(*config.DownloadRate), limiterBurst)
-	}
+	torrentConfig.UploadRateLimiter = newRateLimiter(config.UploadRate, limiterBurst)
+	torrentConfig.DownloadRateLimiter = newRateLimiter(config.DownloadRate, limiterBurst)
 
 	torrentClient, err := torrent.NewClient(torrentConfig)
 	if err != nil {
@@ -70,6 +67,15 @@ func newClient(config clientConfig) (c *client, err error) {
 		uploadRate:   config.UploadRate,
 		downloadRate: config.DownloadRate,
 	}, nil
+}
+
+// newRateLimiter returns a rate limiter bounded by the given byte rate,
+// or an unlimited limiter when rate is nil or zero.
+func newRateLimiter(ratePerSecond *uint64, burst int) *rate.Limiter {
+	if ratePerSecond != nil && *ratePerSecond > 0 {
+		return rate.NewLimiter(rate.Limit(*ratePerSecond), burst)
+	}
+	return rate.NewLimiter(rate.Inf, burst)
 }
 
 func (c *client) close() {
