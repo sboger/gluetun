@@ -12,6 +12,10 @@ import (
 
 const portRetryInterval = 5 * time.Second
 
+// ErrClientNotRunning is returned when an operation is attempted
+// while the BitTorrent client is not running.
+var ErrClientNotRunning = errors.New("BitTorrent client is not running")
+
 // Loop runs the embedded BitTorrent client and exposes it to the
 // control server API.
 type Loop struct {
@@ -123,7 +127,7 @@ func (l *Loop) AddTorrent(magnet string) (infoHash string, err error) {
 	runningClient := l.client
 	l.lock.RUnlock()
 	if runningClient == nil {
-		return "", errors.New("BitTorrent client is not running")
+		return "", ErrClientNotRunning
 	}
 	return runningClient.addMagnet(magnet)
 }
@@ -145,7 +149,7 @@ func (l *Loop) RemoveTorrent(infoHash string) (err error) {
 	runningClient := l.client
 	l.lock.RUnlock()
 	if runningClient == nil {
-		return errors.New("BitTorrent client is not running")
+		return ErrClientNotRunning
 	}
 	return runningClient.removeTorrent(infoHash)
 }

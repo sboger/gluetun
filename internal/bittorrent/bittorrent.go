@@ -1,12 +1,22 @@
 package bittorrent
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/qdm12/gluetun/internal/models"
 	"golang.org/x/time/rate"
+)
+
+var (
+	// ErrTorrentExists is returned when adding a torrent whose
+	// info hash is already managed by the client.
+	ErrTorrentExists = errors.New("torrent already exists")
+	// ErrTorrentNotFound is returned when removing a torrent whose
+	// info hash is not managed by the client.
+	ErrTorrentNotFound = errors.New("torrent not found")
 )
 
 // clientConfig is the runtime configuration of the embedded
@@ -95,7 +105,7 @@ func (c *client) addMagnet(magnet string) (infoHash string, err error) {
 
 	infoHash = metaInfo.InfoHash.HexString()
 	if _, exists := c.client.Torrent(metaInfo.InfoHash); exists {
-		return infoHash, fmt.Errorf("torrent %s already exists", infoHash)
+		return infoHash, fmt.Errorf("%w: %s", ErrTorrentExists, infoHash)
 	}
 
 	addedTorrent, err := c.client.AddMagnet(magnet)
@@ -167,7 +177,7 @@ func (c *client) removeTorrent(infoHashHex string) (err error) {
 
 	torrent, exists := c.client.Torrent(infoHash)
 	if !exists {
-		return fmt.Errorf("torrent %s not found", infoHashHex)
+		return fmt.Errorf("%w: %s", ErrTorrentNotFound, infoHashHex)
 	}
 
 	torrent.Drop()

@@ -1,11 +1,20 @@
 package settings
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/qdm12/gosettings"
 	"github.com/qdm12/gosettings/reader"
 	"github.com/qdm12/gotree"
+)
+
+var (
+	// ErrDownloadDirectoryEmpty is returned when the BitTorrent client
+	// is enabled with an empty download directory.
+	ErrDownloadDirectoryEmpty = errors.New("download directory is empty")
+	// ErrPortZero is returned when the BitTorrent client is configured
+	// with a listening port of 0.
+	ErrPortZero = errors.New("port cannot be 0")
 )
 
 // Bittorrent contains settings to configure the embedded
@@ -43,11 +52,11 @@ func (b Bittorrent) validate() (err error) {
 	}
 
 	if b.DownloadDirectory == "" {
-		return fmt.Errorf("download directory is empty")
+		return ErrDownloadDirectoryEmpty
 	}
 
 	if b.Port != nil && *b.Port == 0 {
-		return fmt.Errorf("port cannot be 0")
+		return ErrPortZero
 	}
 
 	return nil
