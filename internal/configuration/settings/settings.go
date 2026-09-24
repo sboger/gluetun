@@ -18,6 +18,7 @@ type Settings struct {
 	Firewall      Firewall
 	Health        Health
 	HTTPProxy     HTTPProxy
+	Bittorrent    Bittorrent
 	Log           Log
 	Metrics       Metrics
 	PublicIP      PublicIP
@@ -49,6 +50,7 @@ func (s *Settings) Validate(filterChoicesGetter FilterChoicesGetter, ipv6Support
 		"firewall":        s.Firewall.validate,
 		"health":          s.Health.Validate,
 		"http proxy":      s.HTTPProxy.validate,
+		"bittorrent":      s.Bittorrent.validate,
 		"log":             s.Log.validate,
 		"metrics":         s.Metrics.validate,
 		"public ip check": s.PublicIP.validate,
@@ -83,6 +85,7 @@ func (s *Settings) copy() (copied Settings) {
 		Firewall:      s.Firewall.copy(),
 		Health:        s.Health.copy(),
 		HTTPProxy:     s.HTTPProxy.copy(),
+		Bittorrent:    s.Bittorrent.copy(),
 		Log:           s.Log.copy(),
 		Metrics:       s.Metrics.copy(),
 		PublicIP:      s.PublicIP.copy(),
@@ -108,6 +111,7 @@ func (s *Settings) OverrideWith(other Settings,
 	patchedSettings.Firewall.overrideWith(other.Firewall)
 	patchedSettings.Health.OverrideWith(other.Health)
 	patchedSettings.HTTPProxy.overrideWith(other.HTTPProxy)
+	patchedSettings.Bittorrent.overrideWith(other.Bittorrent)
 	patchedSettings.Log.overrideWith(other.Log)
 	patchedSettings.Metrics.overrideWith(other.Metrics)
 	patchedSettings.PublicIP.overrideWith(other.PublicIP)
@@ -136,6 +140,7 @@ func (s *Settings) SetDefaults() {
 	s.Firewall.setDefaults(s.Log.Level)
 	s.Health.SetDefaults()
 	s.HTTPProxy.setDefaults()
+	s.Bittorrent.setDefaults()
 	s.Log.setDefaults()
 	s.Metrics.setDefaults()
 	s.IPv6.setDefaults()
@@ -168,6 +173,7 @@ func (s Settings) toLinesNode() (node *gotree.Node) {
 	node.AppendNode(s.Socks5.toLinesNode())
 	node.AppendNode(s.Shadowsocks.toLinesNode())
 	node.AppendNode(s.HTTPProxy.toLinesNode())
+	node.AppendNode(s.Bittorrent.toLinesNode())
 	node.AppendNode(s.ControlServer.toLinesNode())
 	node.AppendNode(s.Storage.toLinesNode())
 	node.AppendNode(s.System.toLinesNode())
@@ -220,6 +226,7 @@ func (s *Settings) Read(r *reader.Reader, warner Warner) (err error) {
 		"firewall":       s.Firewall.read,
 		"health":         s.Health.Read,
 		"http proxy":     s.HTTPProxy.read,
+		"bittorrent":     s.Bittorrent.read,
 		"log":            s.Log.read,
 		"metrics":        s.Metrics.read,
 		"public ip": func(r *reader.Reader) error {

@@ -75,6 +75,7 @@ Lightweight swiss-army-knife-like VPN client to multiple VPN service providers
 - Built in Shadowsocks proxy server (protocol based on SOCKS5 with an encryption layer, tunnels TCP+UDP)
 - Built in Socks5 proxy server (tunnels TCP+UDP) - partial credits to @angelakis and @adjscent
 - Built in HTTP proxy (tunnels HTTP and HTTPS through TCP)
+- Embedded optional BitTorrent client that downloads through the VPN tunnel, with a control server API to add, list and remove torrents
 - [Connect other containers to it](https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-container-to-gluetun.md)
 - [Connect LAN devices to it](https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-lan-device-to-gluetun.md)
 - Compatible with amd64, i686 (32 bit), **ARM** 64 bit, ARM 32 bit v6 and v7, and even ppc64le 🎆

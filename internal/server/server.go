@@ -15,7 +15,8 @@ import (
 func New(ctx context.Context, settings settings.ControlServer, logger Logger,
 	buildInfo models.BuildInformation, openvpnLooper VPNLooper,
 	pf PortForwarding, dnsLooper DNSLoop,
-	updaterLooper UpdaterLooper, publicIPLooper PublicIPLoop, storage Storage,
+	updaterLooper UpdaterLooper, publicIPLooper PublicIPLoop,
+	bittorrent Bittorrent, storage Storage,
 	ipv6Supported bool) (
 	server *httpserver.Server, err error,
 ) {
@@ -26,7 +27,7 @@ func New(ctx context.Context, settings settings.ControlServer, logger Logger,
 
 	handler, err := newHandler(ctx, logger, *settings.Log, authSettings, buildInfo,
 		openvpnLooper, pf, dnsLooper, updaterLooper, publicIPLooper,
-		storage, ipv6Supported)
+		bittorrent, storage, ipv6Supported)
 	if err != nil {
 		return nil, fmt.Errorf("creating handler: %w", err)
 	}

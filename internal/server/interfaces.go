@@ -30,6 +30,12 @@ type PublicIPLoop interface {
 	GetData() (data models.PublicIP)
 }
 
+type Bittorrent interface {
+	AddTorrent(magnet string) (infoHash string, err error)
+	ListTorrents() (torrents []models.BittorrentTorrent)
+	RemoveTorrent(infoHash string) (err error)
+}
+
 type Storage interface {
 	GetFilterChoices(provider string) models.FilterChoices
 }
