@@ -20,6 +20,7 @@ linters:
       ignore-string-values:
         # commonly used settings strings
         - "^disabled$"
+        - "^enabled$"
         # Firewall and routing strings
         - "^(ACCEPT|DROP)$"
         - "^--delete$"

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -40,12 +41,14 @@ import (
 	"github.com/qdm12/gluetun/internal/publicip"
 	"github.com/qdm12/gluetun/internal/routing"
 	"github.com/qdm12/gluetun/internal/server"
+	"github.com/qdm12/gluetun/internal/server/middlewares/auth"
 	"github.com/qdm12/gluetun/internal/shadowsocks"
 	"github.com/qdm12/gluetun/internal/storage"
 	updater "github.com/qdm12/gluetun/internal/updater/loop"
 	"github.com/qdm12/gluetun/internal/updater/resolver"
 	"github.com/qdm12/gluetun/internal/updater/unzip"
 	"github.com/qdm12/gluetun/internal/vpn"
+	"github.com/qdm12/gluetun/internal/webui"
 	"github.com/qdm12/gosettings/reader"
 	"github.com/qdm12/gosettings/reader/sources/env"
 	"github.com/qdm12/goshutdown"
@@ -493,6 +496,25 @@ func _main(ctx context.Context, buildInfo models.BuildInformation,
 	<-httpServerReady
 	controlGroupHandler.Add(httpServerHandler)
 
+	if *allSettings.WebUI.Enabled {
+		webUILogger := logger.New(log.SetComponent("web ui"))
+		webUI, err := webui.New(webui.Settings{
+			Port:                 allSettings.WebUI.Port,
+			ControlServerAddress: *allSettings.ControlServer.Address,
+			APIKey:               webUIApiKey(allSettings.ControlServer.AuthDefaultRole),
+			Logger:               webUILogger,
+		})
+		if err != nil {
+			return fmt.Errorf("setting up web UI server: %w", err)
+		}
+		webUIReady := make(chan struct{})
+		webUIHandler, _, webUIDone := goshutdown.NewGoRoutineHandler(
+			"web ui", goroutine.OptionTimeout(defaultShutdownTimeout))
+		go webUI.Run(httpServerCtx, webUIReady, webUIDone)
+		<-webUIReady
+		controlGroupHandler.Add(webUIHandler)
+	}
+
 	orderHandler := goshutdown.NewOrderHandler("gluetun",
 		order.OptionTimeout(totalShutdownTimeout),
 		order.OptionOnSuccess(defaultShutdownOnSuccess),
@@ -530,6 +552,21 @@ func _main(ctx context.Context, buildInfo models.BuildInformation,
 type printVersionElement struct {
 	name       string
 	getVersion func(ctx context.Context) (version string, err error)
+}
+
+// webUIApiKey extracts the API key from the control server default
+// role JSON if it uses API key authentication, so the web UI can
+// authenticate proxied requests on the user's behalf. It returns an
+// empty string when no API key is configured.
+func webUIApiKey(defaultRoleJSON string) (apiKey string) {
+	var role auth.Role
+	if err := json.Unmarshal([]byte(defaultRoleJSON), &role); err != nil {
+		return ""
+	}
+	if role.Auth == auth.AuthAPIKey {
+		return role.APIKey
+	}
+	return ""
 }
 
 type infoer interface {

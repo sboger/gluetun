@@ -79,10 +79,82 @@ Lightweight swiss-army-knife-like VPN client to multiple VPN service providers
 - Possibility of split horizon DNS by selecting multiple DNS over TLS providers
 - Can work as a Kubernetes sidecar container, thanks @rorph
 
+## Fork features: embedded BitTorrent client & web UI
+
+This fork extends upstream Gluetun with an optional embedded BitTorrent client
+(downloading through the VPN tunnel) and a small browser-based web UI on top of
+the control-server API.
+
+### Embedded BitTorrent client
+
+Enable it with `BITTORRENT_CLIENT=on`. Torrents are added, listed and removed
+through the control-server API, and downloads are written to
+`BITTORRENT_DOWNLOAD_DIRECTORY` (`/downloads` by default) inside the container —
+always through the VPN tunnel.
+
+Environment variables:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `BITTORRENT_CLIENT` | `off` | Set `on` to enable the embedded BitTorrent client. |
+| `BITTORRENT_PORT` | auto | Listening port (the VPN-forwarded port if port forwarding is enabled, else a random free port). |
+| `BITTORRENT_DOWNLOAD_DIRECTORY` | `/downloads` | Directory where downloaded data is stored. |
+| `BITTORRENT_DHT` | `on` | Enable or disable DHT peer discovery. |
+| `BITTORRENT_UPLOAD_RATE` | unlimited | Maximum upload speed in bytes/s. |
+| `BITTORRENT_DOWNLOAD_RATE` | unlimited | Maximum download speed in bytes/s. |
+
+Control-server API end points (requires the control server, and an API-key role
+for full access):
+
+```
+GET    /v1/bittorrent/torrents
+POST   /v1/bittorrent/torrents   {"magnet":"magnet:?xt=urn:btih:..."}
+DELETE /v1/bittorrent/torrents   {"info_hash":"..."}
+```
+
+Example compose snippet:
+
+```yml
+    environment:
+      - BITTORRENT_CLIENT=on
+      - BITTORRENT_DOWNLOAD_DIRECTORY=/downloads
+    volumes:
+      - ./downloads:/downloads
+```
+
+### Web UI
+
+The fork also ships a small dependency-free web UI that exposes the control-server
+API in the browser (GET to view state, PUT/forms to change what the API allows).
+Enable it with `GLUETUN_WEBUI=on`; it listens on `GLUETUN_WEBUI_PORT` (default
+`7999`) and serves at `http://<host>:7999`.
+
+Environment variables:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `GLUETUN_WEBUI` | `off` | Set `on` to enable the web UI. |
+| `GLUETUN_WEBUI_PORT` | `7999` | Listening port for the web UI. |
+
+The UI proxies `/v1/*` requests to the control server and injects its API key
+automatically. To use it, configure the control server with an API-key default
+role, for example:
+
+```yml
+    environment:
+      - GLUETUN_WEBUI=on
+      - GLUETUN_WEBUI_PORT=7999
+      - HTTP_CONTROL_SERVER_AUTH_DEFAULT_ROLE={"name":"admin","auth":"apikey","apikey":"CHANGE_ME"}
+    ports:
+      - "7999:7999"
+```
+
+Note: the control server denies unauthenticated requests by default, so the web
+UI (and API scripts) need the API-key role above to be useful.
+
 ## Setup
 
 🎉 There are now instructions specific to each VPN provider with examples to help you get started as quickly as possible!
-
 Go to the [Wiki](https://github.com/qdm12/gluetun-wiki)!
 
 [🐛 Found a bug in the Wiki?!](https://github.com/qdm12/gluetun-wiki/issues/new/choose)

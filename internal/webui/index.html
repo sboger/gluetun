@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gluetun Web UI</title>
+<style>
+  :root { color-scheme: dark; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+         background:#111; color:#e6e6e6; margin:0; padding:16px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:#8a8a8a; font-size:12px; margin-bottom:16px; }
+  .card { background:#1b1b1b; border:1px solid #2a2a2a; border-radius:8px;
+          padding:12px 14px; margin-bottom:12px; }
+  .card h2 { font-size:14px; margin:0 0 8px; color:#9fd0ff; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:6px; }
+  button { background:#2a5fa3; color:#fff; border:none; border-radius:5px;
+           padding:5px 10px; cursor:pointer; font-size:12px; }
+  button:hover { background:#3777c4; }
+  button.danger { background:#8a2f2f; }
+  button.danger:hover { background:#a83c3c; }
+  input[type=text] { background:#111; color:#e6e6e6; border:1px solid #333;
+           border-radius:5px; padding:5px 8px; font-size:12px; flex:1; min-width:180px; }
+  pre { background:#0c0c0c; border:1px solid #2a2a2a; border-radius:5px;
+        padding:8px; font-size:11px; overflow:auto; white-space:pre-wrap;
+        word-break:break-all; margin:4px 0 0; color:#9be69b; }
+  .field { margin-bottom:6px; font-size:12px; }
+  .field label { display:inline-block; min-width:90px; color:#c9c9c9; }
+  .err { color:#ff9c9c; font-size:12px; margin-top:4px; }
+  code { background:#0c0c0c; padding:1px 4px; border-radius:3px; font-size:11px; }
+</style>
+</head>
+<body>
+  <h1>Gluetun Web UI</h1>
+  <div class="sub">a thin browser front-end for the gluetun control server API.
+    Requests are proxied to <code>/v1/...</code> with the configured API key.
+    GET buttons fetch state; PUT/forms change it where the API allows.</div>
+
+  <div class="card">
+    <h2>Version</h2>
+    <div class="row">
+      <button onclick="call('GET','/v1/version', null, 'out-version')">GET</button>
+      <span class="sub">GET /v1/version</span>
+    </div>
+    <pre id="out-version">click GET to load</pre>
+  </div>
+
+  <div class="card">
+    <h2>VPN status</h2>
+    <div class="row">
+      <button onclick="call('GET','/v1/vpn/status', null, 'out-vpn')">GET</button>
+      <span class="sub">GET /v1/vpn/status</span>
+    </div>
+    <div class="row">
+      <input id="vpn-status-input" type="text" placeholder="running | stopped" value="running">
+      <button onclick="vpnStatusPut()">PUT status</button>
+      <span class="sub">PUT /v1/vpn/status {&quot;status&quot;:&quot;...&quot;}</span>
+    </div>
+    <pre id="out-vpn">click GET to load</pre>
+  </div>
+
+  <div class="card">
+    <h2>Public IP</h2>
+    <div class="row">
+      <button onclick="call('GET','/v1/publicip/ip', null, 'out-ip')">GET</button>
+      <span class="sub">GET /v1/publicip/ip</span>
+    </div>
+    <pre id="out-ip">click GET to load</pre>
+  </div>
+
+  <div class="card">
+    <h2>Port forwarding</h2>
+    <div class="row">
+      <button onclick="call('GET','/v1/portforward', null, 'out-pf')">GET</button>
+      <span class="sub">GET /v1/portforward</span>
+    </div>
+    <pre id="out-pf">click GET to load</pre>
+  </div>
+
+  <div class="card">
+    <h2>BitTorrent torrents</h2>
+    <div class="row">
+      <button onclick="torrentsList()">GET list</button>
+      <span class="sub">GET /v1/bittorrent/torrents</span>
+    </div>
+    <div class="row">
+      <input id="magnet-input" type="text" placeholder="magnet:?xt=urn:btih:...">
+      <button onclick="torrentAdd()">Add</button>
+      <span class="sub">POST /v1/bittorrent/torrents {&quot;magnet&quot;:&quot;...&quot;}</span>
+    </div>
+    <div class="row">
+      <input id="hash-input" type="text" placeholder="info_hash">
+      <button class="danger" onclick="torrentRemove()">Remove</button>
+      <span class="sub">DELETE /v1/bittorrent/torrents {&quot;info_hash&quot;:&quot;...&quot;}</span>
+    </div>
+    <pre id="out-bt">click GET list to load</pre>
+  </div>
+
+<script>
+function setOut(id, ok, body) {
+  var el = document.getElementById(id);
+  var text;
+  try { text = JSON.stringify(body, null, 2); }
+  catch (e) { text = String(body); }
+  el.textContent = (ok ? "" : "[HTTP " + body.status + "] " + (body.error || "")) + text;
+  el.style.color = ok ? "#9be69b" : "#ff9c9c";
+}
+async function call(method, path, payload, outId) {
+  try {
+    var opts = { method: method, headers: {} };
+    if (payload) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(payload); }
+    var res = await fetch(path, opts);
+    var text = await res.text();
+    var body;
+    try { body = JSON.parse(text); } catch (e) { body = text; }
+    if (!res.ok) { setOut(outId, false, { status: res.status, error: text, body: body }); }
+    else { setOut(outId, true, body); }
+  } catch (e) {
+    setOut(outId, false, { error: String(e) });
+  }
+}
+function vpnStatusPut() {
+  var v = document.getElementById("vpn-status-input").value.trim();
+  call("PUT", "/v1/vpn/status", { status: v }, "out-vpn");
+}
+function torrentsList() { call("GET", "/v1/bittorrent/torrents", null, "out-bt"); }
+function torrentAdd() {
+  var m = document.getElementById("magnet-input").value.trim();
+  if (!m) { setOut("out-bt", false, { error: "magnet URI is required" }); return; }
+  call("POST", "/v1/bittorrent/torrents", { magnet: m }, "out-bt");
+}
+function torrentRemove() {
+  var h = document.getElementById("hash-input").value.trim();
+  if (!h) { setOut("out-bt", false, { error: "info_hash is required" }); return; }
+  call("DELETE", "/v1/bittorrent/torrents", { info_hash: h }, "out-bt");
+}
+</script>
+</body>
+</html>

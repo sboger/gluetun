@@ -87,8 +87,10 @@ func Test_Settings_String(t *testing.T) {
 |       ├── cloudflare
 |       ├── ifconfigco
 |       └── ip2location
-└── Version settings:
-    └── Enabled: yes`,
+├── Version settings:
+|   └── Enabled: yes
+└── Web UI settings:
+    └── Enabled: no`,
 		},
 	}
 

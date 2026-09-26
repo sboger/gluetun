@@ -29,6 +29,7 @@ type Settings struct {
 	Version       Version
 	VPN           VPN
 	Pprof         pprof.Settings
+	WebUI         WebUI
 }
 
 type FilterChoicesGetter interface {
@@ -55,6 +56,7 @@ func (s *Settings) Validate(filterChoicesGetter FilterChoicesGetter, ipv6Support
 		"system":          s.System.validate,
 		"updater":         s.Updater.Validate,
 		"version":         s.Version.validate,
+		"web ui":          s.WebUI.validate,
 		// Pprof validation done in pprof constructor
 		"VPN": func() error {
 			return s.VPN.Validate(filterChoicesGetter, ipv6Supported, warner)
@@ -88,6 +90,7 @@ func (s *Settings) copy() (copied Settings) {
 		Version:       s.Version.copy(),
 		VPN:           s.VPN.Copy(),
 		Pprof:         s.Pprof.Copy(),
+		WebUI:         s.WebUI.copy(),
 	}
 }
 
@@ -110,6 +113,7 @@ func (s *Settings) OverrideWith(other Settings,
 	patchedSettings.Version.overrideWith(other.Version)
 	patchedSettings.VPN.OverrideWith(other.VPN)
 	patchedSettings.Pprof.OverrideWith(other.Pprof)
+	patchedSettings.WebUI.overrideWith(other.WebUI)
 	err = patchedSettings.Validate(filterChoicesGetter, ipv6Supported, warner)
 	if err != nil {
 		return err
@@ -134,6 +138,7 @@ func (s *Settings) SetDefaults() {
 	s.VPN.setDefaults()
 	s.Updater.SetDefaults(s.VPN.Provider.Name)
 	s.Pprof.SetDefaults()
+	s.WebUI.setDefaults()
 }
 
 func (s Settings) String() string {
@@ -158,6 +163,7 @@ func (s Settings) toLinesNode() (node *gotree.Node) {
 	node.AppendNode(s.Updater.toLinesNode())
 	node.AppendNode(s.Version.toLinesNode())
 	node.AppendNode(s.Pprof.ToLinesNode())
+	node.AppendNode(s.WebUI.toLinesNode())
 
 	return node
 }
@@ -216,6 +222,7 @@ func (s *Settings) Read(r *reader.Reader, warner Warner) (err error) {
 		"version":     s.Version.read,
 		"VPN":         s.VPN.read,
 		"profiling":   s.Pprof.Read,
+		"web ui":      s.WebUI.read,
 	}
 
 	for name, read := range readFunctions {
