@@ -1,8 +1,12 @@
 package bittorrent
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"path/filepath"
+	"sync"
+	"time"
 
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
@@ -36,12 +40,24 @@ type clientConfig struct {
 	DownloadRate *uint64
 }
 
+// torrentMeta is per-torrent metadata tracked by the client,
+// since the underlying anacrolix torrent has no notion of a
+// category or a creation timestamp.
+type torrentMeta struct {
+	category string
+	addedAt  int64 // Unix seconds
+}
+
 // client wraps a github.com/anacrolix/torrent client.
 type client struct {
 	client       *torrent.Client
 	downloadDir  string
 	uploadRate   *uint64
 	downloadRate *uint64
+
+	// metaLock guards meta, which is keyed by hex info hash.
+	metaLock sync.RWMutex
+	meta     map[string]torrentMeta
 }
 
 func newClient(config clientConfig) (c *client, err error) {
@@ -78,6 +94,7 @@ func newClient(config clientConfig) (c *client, err error) {
 		downloadDir:  config.DownloadDirectory,
 		uploadRate:   config.UploadRate,
 		downloadRate: config.DownloadRate,
+		meta:         make(map[string]torrentMeta),
 	}, nil
 }
 
@@ -94,27 +111,76 @@ func (c *client) close() {
 	c.client.Close()
 }
 
+func (c *client) setMeta(infoHashHex string, meta torrentMeta) {
+	c.metaLock.Lock()
+	defer c.metaLock.Unlock()
+	c.meta[infoHashHex] = meta
+}
+
+func (c *client) getMeta(infoHashHex string) (meta torrentMeta) {
+	c.metaLock.RLock()
+	defer c.metaLock.RUnlock()
+	meta, _ = c.meta[infoHashHex]
+	return meta
+}
+
+func (c *client) deleteMeta(infoHashHex string) {
+	c.metaLock.Lock()
+	defer c.metaLock.Unlock()
+	delete(c.meta, infoHashHex)
+}
+
 // addMagnet adds a torrent from a magnet URI and starts downloading it
 // automatically once its metadata is obtained. It returns the torrent
-// info hash, hex encoded.
-func (c *client) addMagnet(magnet string) (infoHash string, err error) {
+// info hash, hex encoded. The category is assigned to the torrent and
+// exposed through the APIs.
+func (c *client) addMagnet(magnet string, category string) (infoHash string, err error) {
 	metaInfo, err := metainfo.ParseMagnetUri(magnet)
 	if err != nil {
 		return "", fmt.Errorf("parsing magnet URI: %w", err)
 	}
 
-	infoHash = metaInfo.InfoHash.HexString()
-	if _, exists := c.client.Torrent(metaInfo.InfoHash); exists {
-		return infoHash, fmt.Errorf("%w: %s", ErrTorrentExists, infoHash)
+	return c.addTorrent(metaInfo.InfoHash, category, func() (*torrent.Torrent, error) {
+		return c.client.AddMagnet(magnet)
+	})
+}
+
+// addTorrentFile adds a torrent from the raw bytes of a .torrent file
+// and starts downloading it automatically. It returns the torrent info
+// hash, hex encoded.
+func (c *client) addTorrentFile(data []byte, category string) (infoHash string, err error) {
+	metaInfo, err := metainfo.Load(bytes.NewReader(data))
+	if err != nil {
+		return "", fmt.Errorf("parsing .torrent file: %w", err)
 	}
 
-	addedTorrent, err := c.client.AddMagnet(magnet)
-	if err != nil {
-		return "", fmt.Errorf("adding magnet torrent: %w", err)
+	return c.addTorrent(metaInfo.HashInfoBytes(), category, func() (*torrent.Torrent, error) {
+		return c.client.AddTorrent(metaInfo)
+	})
+}
+
+// addTorrent runs the given add function after checking the torrent is
+// not already managed, records its metadata and starts driving it.
+func (c *client) addTorrent(infoHash metainfo.Hash, category string,
+	add func() (*torrent.Torrent, error),
+) (infoHashHex string, err error) {
+	infoHashHex = infoHash.HexString()
+	if _, exists := c.client.Torrent(infoHash); exists {
+		return infoHashHex, fmt.Errorf("%w: %s", ErrTorrentExists, infoHashHex)
 	}
+
+	addedTorrent, err := add()
+	if err != nil {
+		return "", err
+	}
+
+	c.setMeta(infoHashHex, torrentMeta{
+		category: category,
+		addedAt:  time.Now().Unix(),
+	})
 
 	c.drive(addedTorrent)
-	return infoHash, nil
+	return infoHashHex, nil
 }
 
 // drive downloads the whole torrent once its metadata is available,
@@ -131,15 +197,24 @@ func (c *client) listTorrents() (list []models.BittorrentTorrent) {
 	torrents := c.client.Torrents()
 	list = make([]models.BittorrentTorrent, 0, len(torrents))
 	for _, torrent := range torrents {
-		list = append(list, torrentInfo(torrent))
+		list = append(list, c.torrentInfo(torrent))
 	}
 	return list
 }
 
-func torrentInfo(t *torrent.Torrent) (info models.BittorrentTorrent) {
+func (c *client) torrentInfo(t *torrent.Torrent) (info models.BittorrentTorrent) {
+	stats := t.Stats()
 	info = models.BittorrentTorrent{
-		InfoHash: t.InfoHash().HexString(),
-		Name:     t.Name(),
+		InfoHash:    t.InfoHash().HexString(),
+		Name:        t.Name(),
+		SavePath:    c.downloadDir,
+		ContentPath: filepath.Join(c.downloadDir, t.Name()),
+		NumLeechs:   stats.TotalPeers - stats.ConnectedSeeders,
+		NumSeeds:    stats.ConnectedSeeders,
+		Downloaded:  stats.BytesReadData.Int64(),
+		Uploaded:    stats.BytesWrittenData.Int64(),
+		TimeAdded:   c.getMeta(t.InfoHash().HexString()).addedAt,
+		Category:    c.getMeta(t.InfoHash().HexString()).category,
 	}
 
 	metainfo := t.Info()
@@ -166,6 +241,18 @@ func torrentInfo(t *torrent.Torrent) (info models.BittorrentTorrent) {
 	default:
 		info.State = "idle"
 	}
+
+	files := t.Files()
+	info.Files = make([]models.BittorrentFile, 0, len(files))
+	for i, file := range files {
+		info.Files = append(info.Files, models.BittorrentFile{
+			Index:          i,
+			Name:           file.Path(),
+			Length:         file.Length(),
+			BytesCompleted: file.BytesCompleted(),
+		})
+	}
+
 	return info
 }
 
@@ -181,5 +268,6 @@ func (c *client) removeTorrent(infoHashHex string) (err error) {
 	}
 
 	torrent.Drop()
+	c.deleteMeta(infoHashHex)
 	return nil
 }

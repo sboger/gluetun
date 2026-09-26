@@ -89,7 +89,9 @@ func Test_Settings_String(t *testing.T) {
 |       └── ip2location
 ├── Version settings:
 |   └── Enabled: yes
-└── Web UI settings:
+├── Web UI settings:
+|   └── Enabled: no
+└── qBittorrent-compatible API settings:
     └── Enabled: no`,
 		},
 	}

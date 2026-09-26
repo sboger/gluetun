@@ -30,6 +30,7 @@ type Settings struct {
 	VPN           VPN
 	Pprof         pprof.Settings
 	WebUI         WebUI
+	Qbittorrent   Qbittorrent
 }
 
 type FilterChoicesGetter interface {
@@ -57,6 +58,7 @@ func (s *Settings) Validate(filterChoicesGetter FilterChoicesGetter, ipv6Support
 		"updater":         s.Updater.Validate,
 		"version":         s.Version.validate,
 		"web ui":          s.WebUI.validate,
+		"qbittorrent":     s.Qbittorrent.validate,
 		// Pprof validation done in pprof constructor
 		"VPN": func() error {
 			return s.VPN.Validate(filterChoicesGetter, ipv6Supported, warner)
@@ -91,6 +93,7 @@ func (s *Settings) copy() (copied Settings) {
 		VPN:           s.VPN.Copy(),
 		Pprof:         s.Pprof.Copy(),
 		WebUI:         s.WebUI.copy(),
+		Qbittorrent:   s.Qbittorrent.copy(),
 	}
 }
 
@@ -114,6 +117,7 @@ func (s *Settings) OverrideWith(other Settings,
 	patchedSettings.VPN.OverrideWith(other.VPN)
 	patchedSettings.Pprof.OverrideWith(other.Pprof)
 	patchedSettings.WebUI.overrideWith(other.WebUI)
+	patchedSettings.Qbittorrent.overrideWith(other.Qbittorrent)
 	err = patchedSettings.Validate(filterChoicesGetter, ipv6Supported, warner)
 	if err != nil {
 		return err
@@ -139,6 +143,7 @@ func (s *Settings) SetDefaults() {
 	s.Updater.SetDefaults(s.VPN.Provider.Name)
 	s.Pprof.SetDefaults()
 	s.WebUI.setDefaults()
+	s.Qbittorrent.setDefaults()
 }
 
 func (s Settings) String() string {
@@ -164,6 +169,7 @@ func (s Settings) toLinesNode() (node *gotree.Node) {
 	node.AppendNode(s.Version.toLinesNode())
 	node.AppendNode(s.Pprof.ToLinesNode())
 	node.AppendNode(s.WebUI.toLinesNode())
+	node.AppendNode(s.Qbittorrent.toLinesNode())
 
 	return node
 }
@@ -223,6 +229,7 @@ func (s *Settings) Read(r *reader.Reader, warner Warner) (err error) {
 		"VPN":         s.VPN.read,
 		"profiling":   s.Pprof.Read,
 		"web ui":      s.WebUI.read,
+		"qbittorrent": s.Qbittorrent.read,
 	}
 
 	for name, read := range readFunctions {

@@ -39,6 +39,7 @@ import (
 	"github.com/qdm12/gluetun/internal/pprof"
 	"github.com/qdm12/gluetun/internal/provider"
 	"github.com/qdm12/gluetun/internal/publicip"
+	"github.com/qdm12/gluetun/internal/qbitapi"
 	"github.com/qdm12/gluetun/internal/routing"
 	"github.com/qdm12/gluetun/internal/server"
 	"github.com/qdm12/gluetun/internal/server/middlewares/auth"
@@ -513,6 +514,28 @@ func _main(ctx context.Context, buildInfo models.BuildInformation,
 		go webUI.Run(httpServerCtx, webUIReady, webUIDone)
 		<-webUIReady
 		controlGroupHandler.Add(webUIHandler)
+	}
+
+	if *allSettings.Qbittorrent.Enabled {
+		qbitAPILogger := logger.New(log.SetComponent("qbittorrent api"))
+		qbitAPI, err := qbitapi.New(qbitapi.Settings{
+			Port:       allSettings.Qbittorrent.Port,
+			SavePath:   allSettings.Bittorrent.DownloadDirectory,
+			Username:   allSettings.Qbittorrent.Username,
+			Password:   allSettings.Qbittorrent.Password,
+			DHTEnabled: *allSettings.Bittorrent.DHTEnabled,
+			Bittorrent: bittorrentLoop,
+			Logger:     qbitAPILogger,
+		})
+		if err != nil {
+			return fmt.Errorf("setting up qBittorrent API server: %w", err)
+		}
+		qbitAPIReady := make(chan struct{})
+		qbitAPIHandler, _, qbitAPIDone := goshutdown.NewGoRoutineHandler(
+			"qbittorrent api", goroutine.OptionTimeout(defaultShutdownTimeout))
+		go qbitAPI.Run(httpServerCtx, qbitAPIReady, qbitAPIDone)
+		<-qbitAPIReady
+		controlGroupHandler.Add(qbitAPIHandler)
 	}
 
 	orderHandler := goshutdown.NewOrderHandler("gluetun",

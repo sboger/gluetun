@@ -123,13 +123,43 @@ func (l *Loop) resolvePort(ctx context.Context) (port uint16, err error) {
 // AddTorrent adds a torrent from a magnet URI and returns its info
 // hash.
 func (l *Loop) AddTorrent(magnet string) (infoHash string, err error) {
+	return l.AddMagnet(magnet, "")
+}
+
+// AddMagnet adds a torrent from a magnet URI, assigning it the given
+// category, and returns its info hash.
+func (l *Loop) AddMagnet(magnet string, category string) (infoHash string, err error) {
 	l.lock.RLock()
 	runningClient := l.client
 	l.lock.RUnlock()
 	if runningClient == nil {
 		return "", ErrClientNotRunning
 	}
-	return runningClient.addMagnet(magnet)
+	return runningClient.addMagnet(magnet, category)
+}
+
+// AddTorrentFile adds a torrent from the bytes of a .torrent file,
+// assigning it the given category, and returns its info hash.
+func (l *Loop) AddTorrentFile(_ string, data []byte, category string) (infoHash string, err error) {
+	l.lock.RLock()
+	runningClient := l.client
+	l.lock.RUnlock()
+	if runningClient == nil {
+		return "", ErrClientNotRunning
+	}
+	return runningClient.addTorrentFile(data, category)
+}
+
+// GetSavePath returns the directory torrent data is stored in, or an
+// empty string when the client has not been started.
+func (l *Loop) GetSavePath() (savePath string) {
+	l.lock.RLock()
+	runningClient := l.client
+	l.lock.RUnlock()
+	if runningClient == nil {
+		return ""
+	}
+	return runningClient.downloadDir
 }
 
 // ListTorrents returns the active torrents of the BitTorrent client.
