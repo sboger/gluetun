@@ -152,6 +152,47 @@ role, for example:
 Note: the control server denies unauthenticated requests by default, so the web
 UI (and API scripts) need the API-key role above to be useful.
 
+### qBittorrent-compatible API (Sonarr/Radarr)
+
+To use the embedded client as a drop-in `qBittorrent` download client, enable the
+qBittorrent-compatible API listener. It speaks the qBittorrent Web API v2 subset
+that Sonarr/Radarr use, so you point them at gluetun's host + port as a
+"qBittorrent" download client and it hands the magnet links / torrent URLs
+straight to the embedded BitTorrent client (downloads still exit the VPN tunnel).
+
+Enable it with `QBITTORRENT_API=on`; it listens on `QBITTORRENT_API_PORT`
+(default `8080`) — publish that port so Sonarr/Radarr can reach it. Leave it on
+its own port (e.g. `8080`) rather than aliasing it onto the control server or web
+UI ports, since the qBittorrent endpoint paths differ from the `/v1` API.
+
+Environment variables:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `QBITTORRENT_API` | `off` | Set `on` to enable the qBittorrent-compatible API listener. |
+| `QBITTORRENT_API_PORT` | `8080` | Listening port for the qBittorrent API. |
+| `QBITTORRENT_API_USERNAME` | empty | Optional username. Authentication is only enforced when BOTH username and password are set. |
+| `QBITTORRENT_API_PASSWORD` | empty | Optional password, paired with the username above. |
+
+Example compose snippet:
+
+```yml
+    environment:
+      - BITTORRENT_CLIENT=on
+      - QBITTORRENT_API=on
+      - QBITTORRENT_API_PORT=8080
+      # optional auth (only enforced when both are set)
+      - QBITTORRENT_API_USERNAME=CHANGE_ME
+      - QBITTORRENT_API_PASSWORD=CHANGE_ME
+    ports:
+      - "8080:8080"
+```
+
+In Sonarr/Radarr, add a download client of type **qBittorrent** with Host set to
+the gluetun host and Port `8080` (plus the username/password above if you enabled
+auth). The API requires a single active Torrent client pointing at the embedded
+client — it does not talk to an external qBittorrent instance.
+
 ## Setup
 
 🎉 There are now instructions specific to each VPN provider with examples to help you get started as quickly as possible!
