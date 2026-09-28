@@ -82,8 +82,9 @@ Lightweight swiss-army-knife-like VPN client to multiple VPN service providers
 ## Fork features: embedded BitTorrent client & web UI
 
 This fork extends upstream Gluetun with an optional embedded BitTorrent client
-(downloading through the VPN tunnel) and a small browser-based web UI on top of
-the control-server API.
+(downloading through the VPN tunnel), a small browser-based web UI on top of
+the control-server API, and a qBittorrent-compatible API so Sonarr/Radarr can
+use the embedded client as a drop-in download client.
 
 ### Embedded BitTorrent client
 
@@ -157,8 +158,20 @@ UI (and API scripts) need the API-key role above to be useful.
 To use the embedded client as a drop-in `qBittorrent` download client, enable the
 qBittorrent-compatible API listener. It speaks the qBittorrent Web API v2 subset
 that Sonarr/Radarr use, so you point them at gluetun's host + port as a
-"qBittorrent" download client and it hands the magnet links / torrent URLs
-straight to the embedded BitTorrent client (downloads still exit the VPN tunnel).
+"qBittorrent" download client and it hands the torrents straight to the embedded
+BitTorrent client (downloads still exit the VPN tunnel).
+
+The add endpoint `POST /api/v2/torrents/add` accepts **both magnets and
+`.torrent` files**:
+
+- `urls` — comma-separated list of magnet links **or URLs to `.torrent` files**
+  (each URL is fetched and parsed). This matches what Sonarr/Radarr send.
+- `torrents` — multipart upload of one or more `.torrent` file binaries.
+
+Either way the underlying client ingests torrents by magnet or by `.torrent`
+bytes; non-magnet `urls` entries are fetched and added as `.torrent` files. The
+older control-server `POST /v1/bittorrent/torrents` endpoint remains
+magnet-only — `.torrent` support lives in this qBittorrent-compatible API.
 
 Enable it with `QBITTORRENT_API=on`; it listens on `QBITTORRENT_API_PORT`
 (default `8080`) — publish that port so Sonarr/Radarr can reach it. Leave it on
