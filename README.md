@@ -1,92 +1,36 @@
-# Gluetun VPN client
+# Gluetun — BitTorrent feature fork
 
-⚠️ This and [gluetun-wiki](https://github.com/qdm12/gluetun-wiki) are the only websites for Gluetun, other websites claiming to be official are scams ⚠️
+> **This is a fork of [Gluetun](https://github.com/passteque/gluetun) — the
+> lightweight, swiss-army-knife VPN client.** It keeps Gluetun's full feature
+> set and adds a built-in BitTorrent client so you can download through the VPN
+> tunnel without running a separate torrent container wired into it.
 
-Lightweight swiss-army-knife-like VPN client to multiple VPN service providers
+## 🔗 Original project
 
-![Title image](https://raw.githubusercontent.com/qdm12/gluetun/master/title.svg)
+**[Gluetun — github.com/passteque/gluetun](https://github.com/passteque/gluetun)**
 
-[![Build status](https://github.com/qdm12/gluetun/actions/workflows/ci.yml/badge.svg)](https://github.com/qdm12/gluetun/actions/workflows/ci.yml)
+This fork is built on the upstream **[v3.41.3](https://github.com/passteque/gluetun/releases/tag/v3.41.3)**
+release and is intentionally **locked at that version**. It is **not** a
+contribution back upstream and is not kept in sync with later upstream
+releases: it is an alternative Gluetun build that you can pin at this known
+version level. Head back to the original repo for upstream issues, the wiki, and
+newer releases.
 
-[![Docker pulls qmcgaw/gluetun](https://img.shields.io/docker/pulls/qmcgaw/gluetun.svg)](https://hub.docker.com/r/qmcgaw/gluetun)
-[![Docker pulls qmcgaw/private-internet-access](https://img.shields.io/docker/pulls/qmcgaw/private-internet-access.svg)](https://hub.docker.com/r/qmcgaw/gluetun)
+## What this fork adds
 
-[![Docker stars qmcgaw/gluetun](https://img.shields.io/docker/stars/qmcgaw/gluetun.svg)](https://hub.docker.com/r/qmcgaw/gluetun)
-[![Docker stars qmcgaw/private-internet-access](https://img.shields.io/docker/stars/qmcgaw/private-internet-access.svg)](https://hub.docker.com/r/qmcgaw/gluetun)
+Three optional features on top of stock Gluetun v3.41.3:
 
-![Last release](https://img.shields.io/github/release/qdm12/gluetun?label=Last%20release)
-![Last Docker tag](https://img.shields.io/docker/v/qmcgaw/gluetun?sort=semver&label=Last%20Docker%20tag)
-[![Last release size](https://img.shields.io/docker/image-size/qmcgaw/gluetun?sort=semver&label=Last%20released%20image)](https://hub.docker.com/r/qmcgaw/gluetun/tags?page=1&ordering=last_updated)
-![GitHub last release date](https://img.shields.io/github/release-date/qdm12/gluetun?label=Last%20release%20date)
-![Commits since release](https://img.shields.io/github/commits-since/qdm12/gluetun/latest?sort=semver)
+| Feature | Value |
+| --- | --- |
+| [Embedded BitTorrent client](#1-embedded-bittorrent-client) | Download torrents through the VPN tunnel, managed over the control-server API |
+| [Browser web UI](#2-browser-web-ui) | A small dependency-free UI over the control-server API |
+| [qBittorrent-compatible API](#3-qbittorrent-compatible-api) | Use the embedded client as a drop-in qBittorrent download client for Sonarr/Radarr |
 
-[![Latest size](https://img.shields.io/docker/image-size/qmcgaw/gluetun/latest?label=Latest%20image)](https://hub.docker.com/r/qmcgaw/gluetun/tags)
+All three are off by default — existing Gluetun configs run unchanged.
 
-[![GitHub last commit](https://img.shields.io/github/last-commit/qdm12/gluetun.svg)](https://github.com/qdm12/gluetun/commits/master)
-[![GitHub commit activity](https://img.shields.io/github/commit-activity/y/qdm12/gluetun.svg)](https://github.com/qdm12/gluetun/graphs/contributors)
-[![GitHub closed PRs](https://img.shields.io/github/issues-pr-closed/qdm12/gluetun.svg)](https://github.com/qdm12/gluetun/pulls?q=is%3Apr+is%3Aclosed)
-[![GitHub issues](https://img.shields.io/github/issues/qdm12/gluetun.svg)](https://github.com/qdm12/gluetun/issues)
-[![GitHub closed issues](https://img.shields.io/github/issues-closed/qdm12/gluetun.svg)](https://github.com/qdm12/gluetun/issues?q=is%3Aissue+is%3Aclosed)
+---
 
-![Code size](https://img.shields.io/github/languages/code-size/qdm12/gluetun)
-![GitHub repo size](https://img.shields.io/github/repo-size/qdm12/gluetun)
-![Go version](https://img.shields.io/github/go-mod/go-version/qdm12/gluetun)
-
-![Visitors count](https://visitor-badge.laobi.icu/badge?page_id=gluetun.readme)
-
-## Quick links
-
-- [Setup](#setup)
-- [Features](#features)
-- Problem?
-  - Check the Wiki [common errors](https://github.com/qdm12/gluetun-wiki/tree/main/errors) and [faq](https://github.com/qdm12/gluetun-wiki/tree/main/faq)
-  - [Start a discussion](https://github.com/qdm12/gluetun/discussions)
-  - [Fix the Unraid template](https://github.com/qdm12/gluetun/discussions/550)
-- Suggestion?
-  - [Create an issue](https://github.com/qdm12/gluetun/issues)
-- Happy?
-  - Sponsor me on [github.com/sponsors/qdm12](https://github.com/sponsors/qdm12)
-  - Donate to [paypal.me/qmcgaw](https://www.paypal.me/qmcgaw)
-  - Drop me [an email](mailto:quentin.mcgaw@gmail.com)
-- **Want to add a VPN provider?** check [the development page](https://github.com/qdm12/gluetun-wiki/blob/main/contributing/development.md) and [add a provider page](https://github.com/qdm12/gluetun-wiki/blob/main/contributing/add-a-provider.md)
-- Video:
-
-  [![Video Gif](https://i.imgur.com/CetWunc.gif)](https://youtu.be/0F6I03LQcI4)
-
-- [Substack Console interview](https://console.substack.com/p/console-72)
-
-## Features
-
-- Based on Alpine 3.22 for a small Docker image of 41.1MB
-- Supports: **AirVPN**, **Cyberghost**, **ExpressVPN**, **FastestVPN**, **Giganews**, **HideMyAss**, **IPVanish**, **IVPN**, **Mullvad**, **NordVPN**, **Perfect Privacy**, **Privado**, **Private Internet Access**, **PrivateVPN**, **ProtonVPN**, **PureVPN**,  **SlickVPN**, **Surfshark**, **TorGuard**, **VPNSecure.me**, **VPNUnlimited**, **Vyprvpn**, **Windscribe** servers
-- Supports OpenVPN for all providers listed
-- Supports Wireguard both kernelspace and userspace
-  - For **AirVPN**, **FastestVPN**, **Ivpn**, **Mullvad**, **NordVPN**, **Perfect privacy**, **ProtonVPN**, **Surfshark** and **Windscribe**
-  - For **Cyberghost**, **Private Internet Access**, **PrivateVPN**, **PureVPN**, **Torguard**, **VPN Unlimited** and **VyprVPN** using [the custom provider](https://github.com/qdm12/gluetun-wiki/blob/main/setup/providers/custom.md)
-  - For custom Wireguard configurations using [the custom provider](https://github.com/qdm12/gluetun-wiki/blob/main/setup/providers/custom.md)
-  - More in progress, see [#134](https://github.com/qdm12/gluetun/issues/134)
-- DNS over TLS baked in with service provider(s) of your choice
-- DNS fine blocking of malicious/ads/surveillance hostnames and IP addresses, with live update every 24 hours
-- Choose the vpn network protocol, `udp` or `tcp`
-- Built in firewall kill switch to allow traffic only with needed the VPN servers and LAN devices
-- Built in Shadowsocks proxy server (protocol based on SOCKS5 with an encryption layer, tunnels TCP+UDP)
-- Built in HTTP proxy (tunnels HTTP and HTTPS through TCP)
-- Embedded optional BitTorrent client that downloads through the VPN tunnel, with a control server API to add, list and remove torrents
-- [Connect other containers to it](https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-container-to-gluetun.md)
-- [Connect LAN devices to it](https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-lan-device-to-gluetun.md)
-- Compatible with amd64, i686 (32 bit), **ARM** 64 bit, ARM 32 bit v6 and v7, and even ppc64le 🎆
-- Custom VPN server side port forwarding for [Perfect Privacy](https://github.com/qdm12/gluetun-wiki/blob/main/setup/providers/perfect-privacy.md#vpn-server-port-forwarding), [Private Internet Access](https://github.com/qdm12/gluetun-wiki/blob/main/setup/providers/private-internet-access.md#vpn-server-port-forwarding), [PrivateVPN](https://github.com/qdm12/gluetun-wiki/blob/main/setup/providers/privatevpn.md#vpn-server-port-forwarding) and [ProtonVPN](https://github.com/qdm12/gluetun-wiki/blob/main/setup/providers/protonvpn.md#vpn-server-port-forwarding)
-- Possibility of split horizon DNS by selecting multiple DNS over TLS providers
-- Can work as a Kubernetes sidecar container, thanks @rorph
-
-## Fork features: embedded BitTorrent client & web UI
-
-This fork extends upstream Gluetun with an optional embedded BitTorrent client
-(downloading through the VPN tunnel), a small browser-based web UI on top of
-the control-server API, and a qBittorrent-compatible API so Sonarr/Radarr can
-use the embedded client as a drop-in download client.
-
-### Embedded BitTorrent client
+## 1. Embedded BitTorrent client
 
 Enable it with `BITTORRENT_CLIENT=on`. Torrents are added, listed and removed
 through the control-server API, and downloads are written to
@@ -123,12 +67,14 @@ Example compose snippet:
       - ./downloads:/downloads
 ```
 
-### Web UI
+---
 
-The fork also ships a small dependency-free web UI that exposes the control-server
-API in the browser (GET to view state, PUT/forms to change what the API allows).
-Enable it with `GLUETUN_WEBUI=on`; it listens on `GLUETUN_WEBUI_PORT` (default
-`7999`) and serves at `http://<host>:7999`.
+## 2. Browser web UI
+
+A small, dependency-free web UI that exposes the control-server API in the
+browser (GET to view state, PUT/forms to change what the API allows). Enable it
+with `GLUETUN_WEBUI=on`; it listens on `GLUETUN_WEBUI_PORT` (default `7999`) and
+serves at `http://<host>:7999`.
 
 Environment variables:
 
@@ -139,7 +85,7 @@ Environment variables:
 
 The UI proxies `/v1/*` requests to the control server and injects its API key
 automatically. To use it, configure the control server with an API-key default
-role, for example:
+role:
 
 ```yml
     environment:
@@ -153,13 +99,15 @@ role, for example:
 Note: the control server denies unauthenticated requests by default, so the web
 UI (and API scripts) need the API-key role above to be useful.
 
-### qBittorrent-compatible API (Sonarr/Radarr)
+---
 
-To use the embedded client as a drop-in `qBittorrent` download client, enable the
-qBittorrent-compatible API listener. It speaks the qBittorrent Web API v2 subset
-that Sonarr/Radarr use, so you point them at gluetun's host + port as a
-"qBittorrent" download client and it hands the torrents straight to the embedded
-BitTorrent client (downloads still exit the VPN tunnel).
+## 3. qBittorrent-compatible API
+
+Use the embedded client as a drop-in **qBittorrent** download client. This API
+speaks the qBittorrent Web API v2 subset that Sonarr/Radarr use, so you point
+them at gluetun's host + port as a "qBittorrent" client and it hands the
+torrents straight to the embedded BitTorrent client (downloads still exit the
+VPN tunnel).
 
 The add endpoint `POST /api/v2/torrents/add` accepts **both magnets and
 `.torrent` files**:
@@ -171,12 +119,12 @@ The add endpoint `POST /api/v2/torrents/add` accepts **both magnets and
 Either way the underlying client ingests torrents by magnet or by `.torrent`
 bytes; non-magnet `urls` entries are fetched and added as `.torrent` files. The
 older control-server `POST /v1/bittorrent/torrents` endpoint remains
-magnet-only — `.torrent` support lives in this qBittorrent-compatible API.
+magnet-only — `.torrent` support lives here.
 
 Enable it with `QBITTORRENT_API=on`; it listens on `QBITTORRENT_API_PORT`
 (default `8080`) — publish that port so Sonarr/Radarr can reach it. Leave it on
-its own port (e.g. `8080`) rather than aliasing it onto the control server or web
-UI ports, since the qBittorrent endpoint paths differ from the `/v1` API.
+its own port (e.g. `8080`) rather than aliasing it onto the control server or
+web UI ports, since the qBittorrent endpoint paths differ from the `/v1` API.
 
 Environment variables:
 
@@ -202,60 +150,32 @@ Example compose snippet:
 ```
 
 In Sonarr/Radarr, add a download client of type **qBittorrent** with Host set to
-the gluetun host and Port `8080` (plus the username/password above if you enabled
-auth). The API requires a single active Torrent client pointing at the embedded
-client — it does not talk to an external qBittorrent instance.
+the gluetun host and Port `8080` (plus the username/password above if you
+enabled auth). The API requires a single active Torrent client pointing at the
+embedded client — it does not talk to an external qBittorrent instance.
 
-## Setup
-
-🎉 There are now instructions specific to each VPN provider with examples to help you get started as quickly as possible!
-Go to the [Wiki](https://github.com/qdm12/gluetun-wiki)!
-
-[🐛 Found a bug in the Wiki?!](https://github.com/qdm12/gluetun-wiki/issues/new/choose)
-
-Here's a docker-compose.yml for the laziest:
-
-```yml
 ---
-services:
-  gluetun:
-    image: qmcgaw/gluetun
-    # container_name: gluetun
-    # line above must be uncommented to allow external containers to connect.
-    # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-container-to-gluetun.md#external-container-to-gluetun
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    ports:
-      - 8888:8888/tcp # HTTP proxy
-      - 8388:8388/tcp # Shadowsocks
-      - 8388:8388/udp # Shadowsocks
-    volumes:
-      - /yourpath:/gluetun
-    environment:
-      # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
-      - VPN_SERVICE_PROVIDER=ivpn
-      - VPN_TYPE=openvpn
-      # OpenVPN:
-      - OPENVPN_USER=
-      - OPENVPN_PASSWORD=
-      # Wireguard:
-      # - WIREGUARD_PRIVATE_KEY=wOEI9rqqbDwnN8/Bpp22sVz48T71vJ4fYmFWujulwUU=
-      # - WIREGUARD_ADDRESSES=10.64.222.21/32
-      # Timezone for accurate log times
-      - TZ=
-      # Server list updater
-      # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/servers.md#update-the-vpn-servers-list
-      - UPDATER_PERIOD=
+
+## Container images
+
+Pushing a `bittorrent-*` or `v*` tag to this repo builds and publishes a
+multi-arch (amd64, arm64) container image to
+**[ghcr.io/sboger/gluetun](https://github.com/sboger/gluetun/pkgs/container/gluetun)**
+and creates a public GitHub release.
+
+Current feature images:
+
+```sh
+docker pull ghcr.io/sboger/gluetun:bittorrent-v3.41.3
+docker pull ghcr.io/sboger/gluetun:bittorrent-v3.41.3-qbit   # + qBittorrent API
 ```
 
-🆕 Image also available as `ghcr.io/qdm12/gluetun`
+Each release also carries the `latest` tag, so the newest published feature
+build is available as `ghcr.io/sboger/gluetun:latest`.
 
-## Fun graphs
+## Base version
 
-[![Star History Chart](https://api.star-history.com/svg?repos=qdm12/gluetun&type=date&legend=top-left)](https://www.star-history.com/#qdm12/gluetun&type=date&legend=top-left)
-
-## License
-
-[![MIT](https://img.shields.io/github/license/qdm12/gluetun)](https://github.com/qdm12/gluetun/blob/master/LICENSE)
+This fork is based on Gluetun **v3.41.3** — the full upstream feature set (VPN
+providers, OpenVPN + WireGuard, DNS-over-TLS, firewall kill switch, built-in
+HTTP/SOCKS proxies, and more) is preserved as-is, with the three features above
+layered on top.
